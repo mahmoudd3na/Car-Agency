@@ -10,13 +10,28 @@ const CarAgencyManager = {
   // @param {string} idOrName - ID or name of the agency
   // @return {object} - agency object if found, otherwise null
   searchAgency: function (idOrName) {
-    return this.agencies.filter(agency => agency.agencyName  === idOrName || agency.agencyId === idOrName); 
+    const agency = agencies.filter(agency => agency.agencyName  === idOrName || agency.agencyId === idOrName); 
+    if(agency)
+    return agency; 
+    else return "agency not found";
   },
 
   // Retrieve all agencies' names.
   // @return {string[]} - Array of agency names
   getAllAgencies: function () {
     return this.agencies.map(agency => agency.agencyName);
+  },
+
+  getCar : function (carId){
+    const cars=  agencies.map(agency => agency.cars);
+    for (let car of cars)
+        for(let carBrand of car)
+                for(let model of carBrand.models)
+                    if(model.carNumber === carId)
+                        return model;  
+        
+    return false; 
+
   },
 
   // Add a new car to an agency's inventory.
@@ -31,16 +46,8 @@ const CarAgencyManager = {
         return true;
 }
 return false; 
-  },
+},
 
-  printmodels : (agencyNam)=> { 
-    for(let i=0; i< agencies.length; i++){
-        if(agencies[i].agencyName === agencyNam)
-        for(let j=0; j< agencies[i].cars.length; j++)
-        if(agencies[i].cars[j].brand === "bmw")
-        return agencies[i].cars[j].models; 
-    }
-  }, 
 
   // Remove a car from an agency's inventory.
   // @param {string} agencyId - The ID of the agency
@@ -63,7 +70,7 @@ return false;
   changeAgencyCashOrCredit: function (agencyId, cashOrCredit) {
     const agency =agencies.find(agency => agency.agencyId === agencyId);
     if(agency) {
-        agency.cash=cashOrCredit; 
+        agency.cash+=cashOrCredit; 
         return true;
     }
     return false; 
@@ -120,7 +127,10 @@ const CustomerManager = {
   // @param {string} idOrName - ID or name of the customer
   // @return {object} - customer object if found, otherwise null
   searchCustomer: function (idOrName) {
-    return customer = customers.find(customer => customer.id  === idOrName || customer.name === idOrName); 
+    const customer = customers.find(customer => customer.id  === idOrName || customer.name === idOrName); 
+    if(customer)
+    return customer; 
+    else return false; 
   },
 
   // Retrieve all customers' names.
@@ -128,6 +138,14 @@ const CustomerManager = {
   getAllCustomers: function () {
     return customers.map(customer => customer.name); 
   },
+  addCarToCustomer: function (car,customerId){ 
+    const customer =customers.find(customer => customerId === customer.id);
+    if(customer){
+        customer.cars.push(car);
+        return true;
+}
+return false; 
+  }, 
 
   // Change the cash of a customer.
   // @param {string} customerId - The ID of the customer
@@ -136,7 +154,7 @@ const CustomerManager = {
   changeCustomerCash: function (customerId, cash) {
     const customer = customers.find(customer => customer.id === customerId); 
     if(customer){
-        customer.cash = cash;
+        customer.cash+= cash;
         return true; 
     }
     return false; 
@@ -167,47 +185,94 @@ const CarManager = {
   // @param {string} brand - The brand of the car
   // @return {object[]} - Array of cars that meet the criteria
   searchCars: function (year, price, brand) {
-    
+    let answer=[]; 
+    const cars=  agencies.map(agency => agency.cars); 
+    for (let car of cars)
+        for(let carBrand of car)
+            if(carBrand.brand === brand)
+                for(let model of carBrand.models)
+                    if(model.year === year && model.price === price)
+                        answer.push(model); 
+                
+    return answer;
   },
 
   // Return the most expensive car available for sale.
   // @return {object} - The most expensive car
   getMostExpensiveCar: function () {
-
+    let mostExpensive=0;  
+    let vehicle; 
+    const cars=  agencies.map(agency => agency.cars); 
+    for (let car of cars)
+        for(let carBrand of car)
+                for(let model of carBrand.models)
+                    if(model.price > mostExpensive){
+                        mostExpensive=model.price; 
+                        vehicle=model; 
+                    }
+                
+    return vehicle;
   },
+  
 
   // Return the cheapest car available for sale.
   // @return {object} - The cheapest car
   getCheapestCar: function () {
-
+    let cheapest=99999999;  
+    let vehicle; 
+    const cars=  agencies.map(agency => agency.cars); 
+    for (let car of cars)
+        for(let carBrand of car)
+                for(let model of carBrand.models)
+                    if(model.price < cheapest){
+                        cheapest=model.price; 
+                        vehicle=model; 
+                    }
+                
+    return vehicle;
   },
 };
 
 const CarPurchaseManager = {
-  agencies: [],
-  customers: [],
-  taxesAuthority: {
-    totalTaxesPaid: 0,
-    sumOfAllTransactions: 0,
-    numberOfTransactions: 0,
-  },
+
+
 
   // Implement a sellCar function that sells a car to a specific customer.
   // @param {string} carId - The ID of the car
   // @param {string} customerId - The ID of the customer
   // @return {boolean} - true if the car was sold successfully, false otherwise
   sellCar: function (carId, customerId) {
+    const car = CarAgencyManager.getCar(carId); 
+    const customer =CustomerManager.searchCustomer(customerId); 
+    if(car && customer){
+        if(customer.cash >= car.price){
+            CustomerManager.changeCustomerCash(customerId,-car.price); 
+            CarAgencyManager.changeAgencyCashOrCredit(car.ownerId, car.price); 
+            CustomerManager.addCarToCustomer(car,customerId); 
+            taxesAuthority.sumOfAllTransactions+= car.price; 
+            taxesAuthority.numberOfTransactions+=1;
+            CarAgencyManager.changeAgencyCashOrCredit(car.ownerId,-(car.price*0.17));
+            taxesAuthority.totalTaxesPaid+=car.price*0.17; 
+            return "transaction completed"; 
+        }
+        return "transaction failed"; 
+    }
 
   },
 
   // Calculate and return the total revenue of the entire market.
   // @return {number} - The total revenue of the market
   getTotalMarketRevenue: function () {
-
+    return taxesAuthority.sumOfAllTransactions; 
   },
 };
 
-// console.log(CarAgencyManager.addCarToAgency("Plyq5M5AZ", {brand :"bmw", model: { 
+
+
+
+// console.log(CarAgencyManager.addCarToAgency("Plyq5M5AZ", {
+//     brand :"bmw",
+//     model: { 
 //     name: "5",
 //     year: 2015,
 //     price: 137000,
@@ -215,7 +280,10 @@ const CarPurchaseManager = {
 //     ownerId: "Plyq5M5AZ",
 // }})); 
 // console.log(CarAgencyManager.transferCarBetweenAgencies("26_IPfHU1","Plyq5M5AZ","ISMdU")); 
-// console.log(CarAgencyManager.printmodels("Best Deal"));
-// console.log(CarAgencyManager.printmodels("CarMax"));
-console.log(CustomerManager.changeCustomerCash("BGzHhjnE8","45000")); 
-console.log(CarManager.getAllCars()); 
+// console.log(CustomerManager.changeCustomerCash("BGzHhjnE8","45000")); 
+// console.log(CarManager.searchCars(2015, 137000,"bmw"));
+// console.log(CarAgencyManager.getCar("AZJZ4")); 
+// console.log(CarPurchaseManager.sellCar("MWXBG","2RprZ1dbL")); 
+// console.log(CarAgencyManager.searchAgency("Best Deal")); 
+// console.log(CustomerManager.searchCustomer("2RprZ1dbL"))
+// console.log(CarPurchaseManager.getTotalMarketRevenue());
