@@ -248,7 +248,8 @@ const CarPurchaseManager = {
         if(customer.cash >= car.price){
             CustomerManager.changeCustomerCash(customerId,-car.price); 
             CarAgencyManager.changeAgencyCashOrCredit(car.ownerId, car.price); 
-            CustomerManager.addCarToCustomer(car,customerId); 
+            CustomerManager.addCarToCustomer(car,customerId);
+            CarAgencyManager.removeCarFromAgency(car.ownerId,carId); 
             taxesAuthority.sumOfAllTransactions+= car.price; 
             taxesAuthority.numberOfTransactions+=1;
             CarAgencyManager.changeAgencyCashOrCredit(car.ownerId,-(car.price*0.17));
